@@ -1,0 +1,13 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    gender_detector (1.0.0)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  gender_detector
+
+BUNDLED WITH
+   1.12.5
