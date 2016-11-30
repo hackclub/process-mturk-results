@@ -178,7 +178,7 @@ def write_schools_csv(path, schools, divider)
 end
 
 def write_csv_for_mturk(path, all_assignments, approved_assignments, rejected_assignments)
-  rows = ['AssignmentId', 'HITId', 'Approve', 'Reject', 'Rejection Reason']
+  rows = ['AssignmentId', 'HITId', 'WorkerId', 'Approve', 'Reject']
 
   CSV.open(path, 'w') do |csv|
     csv << rows
@@ -186,14 +186,14 @@ def write_csv_for_mturk(path, all_assignments, approved_assignments, rejected_as
     approved_assignments.each do |id|
       assignment = all_assignments[id]
 
-      csv << [id, assignment[:hit_id], 'x', '', '']
+      csv << [id, assignment[:hit_id], assignment[:worker_id], 'x', '']
     end
 
     rejected_assignments.each do |id, reasons|
       assignment = all_assignments[id]
       reason = reasons.join(', ').capitalize
 
-      csv << [id, assignment[:hit_id], '', 'x', reason]
+      csv << [id, assignment[:hit_id], assignment[:worked_id], '', reason]
     end
   end
 end
