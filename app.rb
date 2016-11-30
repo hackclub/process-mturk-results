@@ -203,7 +203,7 @@ assignments_to_approve = Set.new
 assignments_to_reject = {}
 
 is_header = true
-CSV.foreach('batch.csv', :encoding => 'ISO-8859-1') do |row|
+CSV.foreach('batch.csv') do |row|
   # Skip header row
   if is_header
     is_header = false
