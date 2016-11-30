@@ -2,6 +2,19 @@ require 'csv'
 require 'set'
 require 'gender_detector'
 
+def assign_rejection_reason(assignment_ids, reason)
+  assignment_map = {}
+  assignment_ids.each { |id| assignment_map[id] = [reason] }
+  assignment_map
+end
+
+def merge_rejections(rejections, new_rejections)
+  new_rejections.each do |id, reasons|
+    rejections[id] ||= []
+    rejections[id].push(*reasons)
+  end
+end
+
 # HITs that said that they couldn't find teacher at a school when others were
 # able to
 def assignments_that_should_have_found_email(hits)
@@ -165,7 +178,7 @@ def write_schools_csv(path, schools, divider)
 end
 
 def write_csv_for_mturk(path, all_assignments, approved_assignments, rejected_assignments)
-  rows = ['AssignmentId', 'HITId', 'Approve', 'Reject']
+  rows = ['AssignmentId', 'HITId', 'Approve', 'Reject', 'Rejection Reason']
 
   CSV.open(path, 'w') do |csv|
     csv << rows
@@ -173,23 +186,24 @@ def write_csv_for_mturk(path, all_assignments, approved_assignments, rejected_as
     approved_assignments.each do |id|
       assignment = all_assignments[id]
 
-      csv << [id, assignment[:hit_id], 'x', '']
+      csv << [id, assignment[:hit_id], 'x', '', '']
     end
 
-    rejected_assignments.each do |id|
+    rejected_assignments.each do |id, reasons|
       assignment = all_assignments[id]
+      reason = reasons.join(', ').capitalize
 
-      csv << [id, assignment[:hit_id], '', 'x']
+      csv << [id, assignment[:hit_id], '', 'x', reason]
     end
   end
 end
 
 assignments = {}
 assignments_to_approve = Set.new
-assignments_to_reject = Set.new
+assignments_to_reject = {}
 
 is_header = true
-CSV.foreach('batch.csv') do |row|
+CSV.foreach('batch.csv', :encoding => 'ISO-8859-1') do |row|
   # Skip header row
   if is_header
     is_header = false
@@ -215,11 +229,11 @@ CSV.foreach('batch.csv') do |row|
   }
 end
 
-assignments_to_reject.merge assignments_that_should_have_found_email(assignments)
-assignments_to_reject.merge assignments_with_invalid_email(assignments)
-assignments_to_reject.merge assignments_without_last_name(assignments)
+merge_rejections(assignments_to_reject, assign_rejection_reason(assignments_that_should_have_found_email(assignments), "other turkers were able to find a teacher email"))
+merge_rejections(assignments_to_reject, assign_rejection_reason(assignments_with_invalid_email(assignments), "provided email was incorrectly formatted"))
+merge_rejections(assignments_to_reject, assign_rejection_reason(assignments_without_last_name(assignments), "given teacher was missing a last name"))
 
-assignments_to_approve = Set.new(assignments.keys) - assignments_to_reject
+assignments_to_approve = Set.new(assignments.keys) - assignments_to_reject.keys
 
 divider = ' | '
 schools = {}
@@ -237,5 +251,5 @@ schools = downcase_emails_of(schools)
 schools = dedup_teachers_of(schools)
 schools = fix_teacher_info_in(schools)
 
-write_schools_csv('processed.csv', schools, divider)
-write_csv_for_mturk('results.csv', assignments, assignments_to_approve, assignments_to_reject)
+write_schools_csv('processed_teacher_emails.csv', schools, divider)
+write_csv_for_mturk('decisions.csv', assignments, assignments_to_approve, assignments_to_reject)
