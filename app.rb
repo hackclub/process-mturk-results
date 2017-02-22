@@ -202,29 +202,34 @@ assignments = {}
 assignments_to_approve = Set.new
 assignments_to_reject = {}
 
+columns = {}
+
 is_header = true
 CSV.foreach('batch.csv') do |row|
-  # Skip header row
   if is_header
     is_header = false
+    # Record the index of header columns
+    row.each_with_index do |column_header, index|
+      columns[column_header] = index
+    end
     next
   end
 
-  assignment_id = row[14]
+  assignment_id = row[columns['AssignmentId']]
 
   assignments[assignment_id] = {
-    hit_id: row[0],
-    worker_id: row[15],
-    school: row[27],
-    region: row[28],
-    found_teacher: row[30],
+    hit_id: row[columns['HITId']],
+    worker_id: row[columns['WorkerId']],
+    school: row[columns['Input.name']],
+    region: row[columns['Input.region']],
+    found_teacher: row[columns['Answer.found_teacher_with_email']],
     teacher: {
-      email: row[31],
-      first_name: row[32],
-      last_name: row[33],
-      subject: row[34],
-      title: row[35],
-      url: row[36]
+      email: row[columns['Answer.teacher_email']],
+      first_name: row[columns['Answer.teacher_first_name']],
+      last_name: row[columns['Answer.teacher_last_name']],
+      subject: row[columns['Answer.teacher_subject']],
+      title: row[columns['Answer.teacher_title']],
+      url: row[columns['Answer.teacher_url']]
     }
   }
 end
